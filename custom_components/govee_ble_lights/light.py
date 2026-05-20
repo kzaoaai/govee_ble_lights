@@ -492,14 +492,30 @@ class GoveeBluetoothLight(LightEntity):
                 )
 
                 try:
-                    # Send multi-packet command with effect data
+                    # Step 1: Send effect data packets
                     await GoveeBLE.send_multi_packet(
                         self._client,
                         0xa3,  # Protocol type for scene commands
                         array.array('B', [0x02]),  # Header
                         array.array('B', base64.b64decode(specialEffect['scenceParam'])))
 
-                    _LOGGER.debug("Effect %r sent successfully, sending power-on", effect)
+                    # Step 2: Send scene activation command (0x33 0x05 0x04 scene_code)
+                    # The Govee app sends both the 0xa3 effect data AND a separate
+                    # activation command. Without this, devices load the data but
+                    # never activate the effect.
+                    # Captured via Android BT HCI snoop log of Govee app traffic.
+                    scene_code = scene.get('sceneCode', sceneIndex)
+                    await GoveeBLE.send_single_packet(
+                        self._client,
+                        GoveeBLE.LEDCommand.COLOR,
+                        [GoveeBLE.LEDMode.SCENE_ACTIVATE,
+                         scene_code & 0xFF,
+                         (scene_code >> 8) & 0xFF]
+                    )
+                    _LOGGER.debug(
+                        "Effect %r sent with scene activation (code=%d)",
+                        effect, scene_code
+                    )
 
                     # Update current effect
                     self._current_effect = effect
