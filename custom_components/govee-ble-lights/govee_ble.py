@@ -80,6 +80,7 @@ class GoveeBLE:
         MANUAL = 0x02
         MICROPHONE = 0x06
         SCENES = 0x05
+        SCENE_ACTIVATE = 0x04
         SEGMENTS = 0x15
 
     class LEDFrameType(IntEnum):
